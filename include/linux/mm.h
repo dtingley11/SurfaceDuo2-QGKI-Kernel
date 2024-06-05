@@ -15,6 +15,7 @@
 #include <linux/atomic.h>
 #include <linux/debug_locks.h>
 #include <linux/mm_types.h>
+#include <linux/mmap_lock.h>
 #include <linux/range.h>
 #include <linux/pfn.h>
 #include <linux/percpu-refcount.h>
@@ -29,7 +30,9 @@
 #include <linux/sizes.h>
 #include <linux/android_kabi.h>
 #include <linux/android_vendor.h>
-
+//MSCHANGE begin
+#define KSWAPD_TUNE
+//MSCHANGE end
 struct mempolicy;
 struct anon_vma;
 struct anon_vma_chain;
@@ -130,6 +133,16 @@ extern int mmap_rnd_compat_bits __read_mostly;
 
 #ifndef lm_alias
 #define lm_alias(x)	__va(__pa_symbol(x))
+#endif
+
+/*
+ * With CONFIG_CFI_CLANG, the compiler replaces function addresses in
+ * instrumented C code with jump table addresses. Architectures that
+ * support CFI can define this macro to return the actual function address
+ * when needed.
+ */
+#ifndef function_nocfi
+#define function_nocfi(x) (x)
 #endif
 
 /*
@@ -1541,6 +1554,12 @@ int generic_access_phys(struct vm_area_struct *vma, unsigned long addr,
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 static inline void vm_write_begin(struct vm_area_struct *vma)
 {
+        /*
+         * Isolated vma might be freed without exclusive mmap_lock but
+         * speculative page fault handler still needs to know it was changed.
+         */
+        if (!RB_EMPTY_NODE(&vma->vm_rb))
+		WARN_ON_ONCE(!rwsem_is_locked(&(vma->vm_mm)->mmap_sem));
 	/*
 	 * The reads never spins and preemption
 	 * disablement is not required.
@@ -2483,6 +2502,7 @@ extern int install_special_mapping(struct mm_struct *mm,
 				   unsigned long flags, struct page **pages);
 
 unsigned long randomize_stack_top(unsigned long stack_top);
+unsigned long randomize_page(unsigned long start, unsigned long range);
 
 extern unsigned long get_unmapped_area(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
 
@@ -2968,7 +2988,14 @@ extern int sysctl_memory_failure_recovery;
 extern void shake_page(struct page *p, int access);
 extern atomic_long_t num_poisoned_pages __read_mostly;
 extern int soft_offline_page(struct page *page, int flags);
-
+//MSCHANGE begin
+#ifdef KSWAPD_TUNE
+void lenny_set_accuracy(int accuracy); //lenny_fast 
+int lenny_get_accuracy(void); //lenny_fast
+void lenny_set_sum(int sum_ly); //lenny_fast 
+int lenny_get_sum(void); //lenny_fast
+#endif
+//MSCHANGE end
 
 /*
  * Error handlers for various types of pages.
