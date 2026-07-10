@@ -1,0 +1,3 @@
+[submodule "KernelSU-rksu"]
+	path = KernelSU-rksu
+	url = https://github.com/rsuntk/KernelSU.git
