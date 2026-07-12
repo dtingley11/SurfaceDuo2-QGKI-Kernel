@@ -20,7 +20,7 @@ This repository keeps three tested development points:
 - Build type: `user`
 - Expected kernel release: `5.4.233-qgki-c1-p-0_0_0`
 
-The stock-derived bootable baseline disables forced kernel module signing and suppresses the dirty-tree `+` suffix in the release string. These changes are required for compatibility with the Surface Duo 2 userspace and vendor modules used during testing.
+The stock-derived bootable baseline disables forced kernel module signing and removes the dirty-tree `+` suffix from the release string. These are the settings used by the tested build.
 
 ## Clone
 
